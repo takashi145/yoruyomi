@@ -1,0 +1,245 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from "astro:content";
+
+const allChapters = await getCollection("novels");
+
+const worksMap = allChapters.reduce((acc, entry) => {
+  const key = entry.data.workSlug;
+  if (!acc[key]) acc[key] = { meta: entry, chapterCount: 0 };
+  acc[key].chapterCount++;
+  if (entry.data.chapterNumber < acc[key].meta.data.chapterNumber) {
+    acc[key].meta = entry;
+  }
+  return acc;
+}, {} as Record<string, { meta: typeof allChapters[number]; chapterCount: number }>);
+
+const works = Object.values(worksMap).sort(
+  (a, b) => b.meta.data.publishedAt.getTime() - a.meta.data.publishedAt.getTime()
+);
+
+const allGenres = [...new Set(works.flatMap(({ meta }) => meta.data.genre ?? []))].sort();
+---
+
+<Base title="作品一覧">
+  <div class="list-page">
+
+    <nav class="breadcrumb">
+      <a href="/">夜読み</a>
+      <span>›</span>
+      <span>作品一覧</span>
+    </nav>
+
+    <h1 class="page-title">作品一覧</h1>
+
+    <!-- フィルター -->
+    <div class="filter-area">
+      <div class="filter-group">
+        <span class="filter-label">状態</span>
+        <div class="filter-btns">
+          <button class="filter-btn active" data-type="status" data-value="all">すべて</button>
+          <button class="filter-btn" data-type="status" data-value="complete">完結</button>
+          <button class="filter-btn" data-type="status" data-value="wip">連載中</button>
+        </div>
+      </div>
+      {allGenres.length > 0 && (
+        <div class="filter-group">
+          <span class="filter-label">ジャンル</span>
+          <div class="filter-btns">
+            <button class="filter-btn active" data-type="genre" data-value="all">すべて</button>
+            {allGenres.map((g) => (
+              <button class="filter-btn" data-type="genre" data-value={g}>{g}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+
+    {works.length === 0 && <p class="empty">まだ作品がありません。</p>}
+
+    <ul class="works-list" id="works-list">
+      {works.map(({ meta, chapterCount }) => (
+        <li
+          data-genres={(meta.data.genre ?? []).join(",")}
+          data-status={meta.data.status}
+        >
+          <a href={`/novels/${meta.data.workSlug}`} class="work-row">
+            <div class="work-info">
+              <div class="work-badges">
+                {meta.data.genre?.map((g) => <span class="badge badge-genre">{g}</span>)}
+                <span class={`badge badge-${meta.data.status}`}>
+                  {meta.data.status === "complete" ? "完結" : "連載中"}
+                </span>
+              </div>
+              <p class="work-title">{meta.data.workTitle}</p>
+              {meta.data.synopsis && (
+                <p class="work-synopsis">{meta.data.synopsis}</p>
+              )}
+            </div>
+            <div class="work-aside">
+              <p class="work-chapter-count">{chapterCount}<span>章</span></p>
+              <p class="work-date">{meta.data.publishedAt.toLocaleDateString("ja-JP")}</p>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <p class="no-results" id="no-results" style="display:none;">
+      該当する作品がありません。
+    </p>
+
+  </div>
+</Base>
+
+<style>
+  .list-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  .breadcrumb {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-family: sans-serif;
+    margin-bottom: 2rem;
+  }
+  .breadcrumb a { color: var(--text-dim); transition: color 0.15s; }
+  .breadcrumb a:hover { color: var(--text-sub); }
+
+  .page-title { font-size: 1.4rem; font-weight: normal; margin-bottom: 2rem; }
+
+  .filter-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    font-family: sans-serif;
+    min-width: 3rem;
+  }
+  .filter-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .filter-btn {
+    font-family: sans-serif;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.8rem;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  .empty, .no-results {
+    color: var(--text-sub);
+    font-family: sans-serif;
+    font-size: 0.9rem;
+    padding: 2rem 0;
+  }
+
+  .works-list { list-style: none; }
+  .works-list li { border-top: 1px solid var(--border); }
+  .works-list li:last-child { border-bottom: 1px solid var(--border); }
+  .works-list li.hidden { display: none; }
+
+  .work-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.4rem 0.8rem;
+    margin: 0 -0.8rem;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .work-row:hover { background: var(--surface); }
+  .work-row:hover .work-title { color: var(--accent); }
+
+  .work-info { flex: 1; min-width: 0; }
+  .work-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+  .work-title { font-size: 1rem; margin-bottom: 0.4rem; transition: color 0.15s; }
+  .work-synopsis {
+    font-size: 0.82rem;
+    color: var(--text-sub);
+    line-height: 1.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .work-aside { text-align: right; flex-shrink: 0; font-family: sans-serif; }
+  .work-chapter-count { font-size: 1.3rem; line-height: 1; margin-bottom: 0.3rem; }
+  .work-chapter-count span { font-size: 0.72rem; color: var(--text-dim); margin-left: 0.2rem; }
+  .work-date { font-size: 0.72rem; color: var(--text-dim); }
+</style>
+
+<script>
+  const items = document.querySelectorAll<HTMLLIElement>("#works-list li");
+  const noResults = document.getElementById("no-results")!;
+
+  const active = { status: "all", genre: "all" };
+
+  function applyFilters() {
+    let visible = 0;
+    items.forEach((item) => {
+      const genres = item.dataset.genres?.split(",").filter(Boolean) ?? [];
+      const status = item.dataset.status ?? "";
+      const matchStatus = active.status === "all" || status === active.status;
+      const matchGenre  = active.genre  === "all" || genres.includes(active.genre);
+      const show = matchStatus && matchGenre;
+      item.classList.toggle("hidden", !show);
+      if (show) visible++;
+    });
+    noResults.style.display = visible === 0 ? "block" : "none";
+  }
+
+  function activateButton(type: "status" | "genre", value: string) {
+    document.querySelectorAll<HTMLButtonElement>(`.filter-btn[data-type="${type}"]`)
+      .forEach((b) => b.classList.remove("active"));
+    const target = document.querySelector<HTMLButtonElement>(
+      `.filter-btn[data-type="${type}"][data-value="${value}"]`
+    );
+    if (target) target.classList.add("active");
+    else document.querySelector<HTMLButtonElement>(
+      `.filter-btn[data-type="${type}"][data-value="all"]`
+    )?.classList.add("active");
+  }
+
+  document.querySelectorAll<HTMLButtonElement>(".filter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const type  = btn.dataset.type as "status" | "genre";
+      const value = btn.dataset.value!;
+      activateButton(type, value);
+      active[type] = value;
+      applyFilters();
+    });
+  });
+
+  // URLパラメータで初期フィルターを適用
+  const params = new URLSearchParams(location.search);
+  const genreParam = params.get("genre");
+  if (genreParam) {
+    active.genre = genreParam;
+    activateButton("genre", genreParam);
+    applyFilters();
+  }
+</script>

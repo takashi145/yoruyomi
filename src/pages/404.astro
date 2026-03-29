@@ -1,0 +1,48 @@
+---
+import Base from "../layouts/Base.astro";
+---
+
+<Base title="404 — ページが見つかりません">
+  <div class="not-found">
+    <p class="code">404</p>
+    <h1 class="message">ページが見つかりません</h1>
+    <p class="sub">そのページは存在しないか、移動した可能性があります。</p>
+    <div class="actions">
+      <a href="/" class="btn btn-primary">トップへ戻る</a>
+      <a href="/novels" class="btn btn-ghost">作品一覧</a>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .not-found {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 8rem 2rem;
+    text-align: center;
+  }
+  .code {
+    font-size: clamp(5rem, 20vw, 10rem);
+    font-weight: bold;
+    line-height: 1;
+    color: var(--border);
+    font-family: sans-serif;
+    margin-bottom: 1.5rem;
+  }
+  .message {
+    font-size: 1.3rem;
+    font-weight: normal;
+    margin-bottom: 0.8rem;
+  }
+  .sub {
+    font-size: 0.88rem;
+    color: var(--text-sub);
+    margin-bottom: 2.5rem;
+    line-height: 1.7;
+  }
+  .actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+  }
+</style>

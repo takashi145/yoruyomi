@@ -1,0 +1,46 @@
+---
+import ChapterLayout from "../../../layouts/ChapterLayout.astro";
+import { getCollection, render } from "astro:content";
+
+export async function getStaticPaths() {
+  const allChapters = await getCollection("novels");
+
+  return allChapters.map((entry) => {
+    const workSlug = entry.data.workSlug;
+    const chSlug = entry.id.replace(`${workSlug}/`, "").replace(/\.md$/, "");
+
+    const siblings = allChapters
+      .filter((e) => e.data.workSlug === workSlug)
+      .sort((a, b) => a.data.chapterNumber - b.data.chapterNumber);
+
+    const idx = siblings.findIndex((e) => e.id === entry.id);
+    const prevEntry = siblings[idx - 1];
+    const nextEntry = siblings[idx + 1];
+
+    const toNav = (e: typeof entry | undefined) =>
+      e ? {
+        slug: e.id.replace(`${workSlug}/`, "").replace(/\.md$/, ""),
+        title: e.data.title,
+        chapterNumber: e.data.chapterNumber,
+      } : undefined;
+
+    const allSiblings = siblings.map((e) => ({
+      slug: e.id.replace(`${workSlug}/`, "").replace(/\.md$/, ""),
+      title: e.data.title,
+      chapterNumber: e.data.chapterNumber,
+    }));
+
+    return {
+      params: { work: workSlug, chapter: chSlug },
+      props: { entry, prev: toNav(prevEntry), next: toNav(nextEntry), allChapters: allSiblings },
+    };
+  });
+}
+
+const { entry, prev, next, allChapters } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<ChapterLayout entry={entry} prev={prev} next={next} allChapters={allChapters}>
+  <Content />
+</ChapterLayout>

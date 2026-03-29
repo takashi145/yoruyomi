@@ -1,0 +1,122 @@
+:root {
+  --bg:       #111111;
+  --surface:  #1c1c1c;
+  --accent:   #c8956c;
+  --text:     #e0dcd6;
+  --text-sub: #a0998f;
+  --text-dim: #6a6460;
+  --border:   #303030;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Georgia', serif;
+  min-height: 100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ---- HEADER ---- */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 100;
+}
+.site-logo {
+  font-size: 1rem;
+  color: var(--accent);
+  font-family: sans-serif;
+  letter-spacing: 0.1em;
+}
+.site-logo em { font-style: normal; color: var(--text-sub); }
+
+/* ---- PROGRESS BAR ---- */
+#progress-bar {
+  position: fixed;
+  top: 52px;
+  left: 0;
+  height: 1px;
+  width: 0%;
+  background: var(--accent);
+  z-index: 99;
+  transition: width 0.1s linear;
+}
+
+/* ---- DIVIDER ---- */
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/* ---- BADGE ---- */
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 2px;
+  font-size: 0.68rem;
+  font-family: sans-serif;
+  letter-spacing: 0.04em;
+  border: 1px solid;
+}
+.badge-genre    { border-color: var(--accent); color: var(--accent); }
+.badge-complete { border-color: #4a7c5e; color: #7ecba0; }
+.badge-wip      { border-color: #7c6a4a; color: #cba07e; }
+
+/* ---- BUTTONS ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1.2rem;
+  border-radius: 3px;
+  font-size: 0.83rem;
+  font-family: sans-serif;
+  border: 1px solid;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #111;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+
+/* ---- PROSE ---- */
+.prose {
+  max-width: 64ch;
+}
+.prose p {
+  font-size: 1.05rem;
+  line-height: 2.2;
+  margin-bottom: 1.5rem;
+  text-indent: 1em;
+  color: #cac6be;
+}
+.prose p.no-indent  { text-indent: 0; }
+.prose p.center     { text-align: center; text-indent: 0; color: var(--text-sub); }
+.prose p.dialogue   { text-indent: 0; padding-left: 1.2em; border-left: 1px solid var(--border); }
+.prose h2 {
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin: 3rem 0 1.5rem;
+  font-family: sans-serif;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+}

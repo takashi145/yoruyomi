@@ -1,0 +1,226 @@
+---
+import Base from "./Base.astro";
+import type { CollectionEntry } from "astro:content";
+
+interface ChapterNav {
+  slug: string;
+  title: string;
+  chapterNumber: number;
+}
+
+interface Props {
+  entry: CollectionEntry<"novels">;
+  prev?: ChapterNav;
+  next?: ChapterNav;
+  allChapters: ChapterNav[];
+}
+
+const { entry, prev, next, allChapters } = Astro.props;
+const { title, workTitle, workSlug, chapterNumber, genre } = entry.data;
+const currentSlug = entry.id.replace(`${workSlug}/`, "").replace(/\.md$/, "");
+---
+
+<Base title={`${workTitle} 第${chapterNumber}章「${title}」`}>
+  <div id="progress-bar"></div>
+
+  <div class="chapter-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <a href={`/novels/${workSlug}`} class="sidebar-work-title">{workTitle}</a>
+        <nav class="sidebar-toc">
+          {allChapters.map((ch) => (
+            <a
+              href={`/novels/${workSlug}/${ch.slug}`}
+              class={`toc-item ${ch.slug === currentSlug ? "toc-item--active" : ""}`}
+            >
+              <span class="toc-num">{String(ch.chapterNumber).padStart(2, "0")}</span>
+              <span class="toc-title">{ch.title}</span>
+            </a>
+          ))}
+        </nav>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="chapter-main">
+
+      <!-- breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="/">夜読み</a>
+        <span>›</span>
+        <a href="/novels">作品一覧</a>
+        <span>›</span>
+        <a href={`/novels/${workSlug}`}>{workTitle}</a>
+        <span>›</span>
+        <span class="breadcrumb-current">第{chapterNumber}章</span>
+      </nav>
+
+      <!-- chapter header -->
+      <div class="chapter-header">
+        {genre && genre.length > 0 && (
+          <div class="chapter-genre">
+            {genre.map((g) => <span class="badge badge-genre">{g}</span>)}
+          </div>
+        )}
+        <p class="chapter-num">第{chapterNumber}章</p>
+        <h1 class="chapter-title">「{title}」</h1>
+      </div>
+
+      <hr />
+
+      <article class="prose">
+        <slot />
+      </article>
+
+      <hr />
+
+      <!-- chapter navigation -->
+      <nav class="chapter-nav">
+        {prev ? (
+          <a href={`/novels/${workSlug}/${prev.slug}`} class="btn btn-ghost">
+            ← 第{prev.chapterNumber}章
+          </a>
+        ) : <div />}
+
+        <a href={`/novels/${workSlug}`} class="chapter-nav-index">目次</a>
+
+        {next ? (
+          <a href={`/novels/${workSlug}/${next.slug}`} class="btn btn-ghost">
+            第{next.chapterNumber}章 →
+          </a>
+        ) : (
+          <span class="chapter-nav-end">了</span>
+        )}
+      </nav>
+
+    </main>
+  </div>
+</Base>
+
+<style>
+  .chapter-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 52px);
+  }
+
+  /* ---- SIDEBAR ---- */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 52px;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+  }
+  .sidebar-inner {
+    padding: 2rem 0;
+  }
+  .sidebar-work-title {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    padding: 0 1.2rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+    transition: color 0.15s;
+  }
+  .sidebar-work-title:hover { color: var(--text); }
+
+  .sidebar-toc {
+    display: flex;
+    flex-direction: column;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.82rem;
+    color: var(--text-sub);
+    border-left: 2px solid transparent;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .toc-item:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .toc-item--active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--surface);
+  }
+  .toc-item--active:hover { color: var(--accent); }
+  .toc-num {
+    font-family: sans-serif;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    min-width: 1.5rem;
+    flex-shrink: 0;
+  }
+  .toc-item--active .toc-num { color: var(--accent); }
+
+  /* ---- MAIN ---- */
+  .chapter-main {
+    max-width: 680px;
+    padding: 2.5rem 3rem 5rem;
+  }
+
+  .breadcrumb {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-family: sans-serif;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+  .breadcrumb a { color: var(--text-dim); transition: color 0.15s; }
+  .breadcrumb a:hover { color: var(--text-sub); }
+  .breadcrumb-current { color: var(--text-sub); }
+
+  .chapter-header { margin-bottom: 2.5rem; }
+  .chapter-genre { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .chapter-num {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-family: sans-serif;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+  .chapter-title { font-size: 1.6rem; line-height: 1.5; }
+
+  .prose { margin: 2.5rem 0; }
+
+  .chapter-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-family: sans-serif;
+    padding-top: 1rem;
+  }
+  .chapter-nav-index { font-size: 0.8rem; color: var(--text-dim); transition: color 0.15s; }
+  .chapter-nav-index:hover { color: var(--text-sub); }
+  .chapter-nav-end { font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.1em; }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 720px) {
+    .chapter-layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .chapter-main { padding: 2rem 1.2rem 4rem; }
+  }
+</style>
+
+<script>
+  const bar = document.getElementById("progress-bar");
+  if (bar) {
+    window.addEventListener("scroll", () => {
+      const el = document.documentElement;
+      const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
+      bar.style.width = (pct * 100) + "%";
+    });
+  }
+</script>

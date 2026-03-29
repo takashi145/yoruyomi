@@ -1,0 +1,236 @@
+---
+import Base from "../layouts/Base.astro";
+import { SITE_NAME, SITE_DESCRIPTION } from "../config";
+import { getCollection } from "astro:content";
+
+const allChapters = await getCollection("novels");
+
+const worksMap = allChapters.reduce((acc, entry) => {
+  const key = entry.data.workSlug;
+  if (!acc[key]) acc[key] = { meta: entry, chapterCount: 0 };
+  acc[key].chapterCount++;
+  if (entry.data.chapterNumber < acc[key].meta.data.chapterNumber) {
+    acc[key].meta = entry;
+  }
+  return acc;
+}, {} as Record<string, { meta: typeof allChapters[number]; chapterCount: number }>);
+
+const works = Object.values(worksMap);
+const totalWorks    = works.length;
+const completeWorks = works.filter(({ meta }) => meta.data.status === "complete").length;
+const wipWorks      = works.filter(({ meta }) => meta.data.status === "wip").length;
+
+// ジャンル統計
+const genreStats = [...new Set(works.flatMap(({ meta }) => meta.data.genre ?? []))]
+  .map((genre) => ({
+    genre,
+    count: works.filter(({ meta }) => meta.data.genre?.includes(genre)).length,
+  }))
+  .sort((a, b) => b.count - a.count);
+
+// 注目作品
+const featuredWorks = allChapters
+  .filter((e) => e.data.featured && e.data.chapterNumber === 1)
+  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime())
+  .map((e) => worksMap[e.data.workSlug])
+  .filter((w): w is NonNullable<typeof w> => Boolean(w));
+---
+
+<Base title={SITE_NAME} description={SITE_DESCRIPTION}>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-left">
+      <h1 class="hero-name">{SITE_NAME}</h1>
+      <p class="hero-desc">{SITE_DESCRIPTION}</p>
+      <a href="/novels" class="btn btn-primary">作品一覧を見る</a>
+    </div>
+    <div class="hero-right">
+      <div class="hero-stat">
+        <span class="hero-stat-unit">全</span><span class="hero-stat-num">{totalWorks}</span><span class="hero-stat-unit">作品</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">{completeWorks}</span><span class="hero-stat-unit">完結</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-num">{wipWorks}</span><span class="hero-stat-unit">連載中</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ジャンル統計 -->
+  {genreStats.length > 0 && (
+    <section class="genre-bar">
+      {genreStats.map(({ genre, count }) => (
+        <a href={`/novels?genre=${encodeURIComponent(genre)}`} class="genre-tag">
+          {genre}<span class="genre-tag-count">{count}</span>
+        </a>
+      ))}
+    </section>
+  )}
+
+  <!-- 注目作品 -->
+  <div class="content">
+    {featuredWorks.length > 0 && (
+      <section class="section">
+        <p class="section-label">注目作品</p>
+        <div class="featured-list">
+          {featuredWorks.map(({ meta, chapterCount }) => (
+            <a href={`/novels/${meta.data.workSlug}`} class="featured-card">
+              <div class="featured-left">
+                <div class="featured-tags">
+                  {meta.data.genre?.map((g: string) => <span class="badge badge-genre">{g}</span>)}
+                  <span class={`badge badge-${meta.data.status}`}>
+                    {meta.data.status === "complete" ? "完結" : "連載中"}
+                  </span>
+                </div>
+                <p class="featured-title">{meta.data.workTitle}</p>
+                {meta.data.synopsis && (
+                  <p class="featured-synopsis">{meta.data.synopsis}</p>
+                )}
+              </div>
+              <div class="featured-right">
+                <span class="featured-chapters">{chapterCount}</span>
+                <span class="featured-chapters-label">章</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+
+</Base>
+
+<style>
+  /* HERO */
+  .hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 5rem 2.5rem 4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-left { flex: 1; }
+  .hero-name {
+    font-size: clamp(3rem, 9vw, 6rem);
+    font-weight: bold;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.2rem;
+  }
+  .hero-desc {
+    font-size: 0.95rem;
+    color: var(--text-sub);
+    margin-bottom: 1.8rem;
+  }
+  .hero-right {
+    display: flex;
+    flex-shrink: 0;
+    align-items: flex-end;
+    gap: 0;
+  }
+  .hero-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0 2rem;
+    border-left: 1px solid var(--border);
+    font-family: sans-serif;
+  }
+  .hero-stat-num {
+    font-size: clamp(3rem, 6vw, 5rem);
+    font-weight: bold;
+    line-height: 1;
+    color: var(--text);
+  }
+  .hero-stat-unit {
+    font-size: 1.2rem;
+    color: var(--text-sub);
+    letter-spacing: 0.04em;
+  }
+
+  /* GENRE BAR */
+  .genre-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1.5rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .genre-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: sans-serif;
+    font-size: 0.82rem;
+    color: var(--text-sub);
+    transition: all 0.15s;
+  }
+  .genre-tag:hover { border-color: var(--accent); color: var(--text); }
+  .genre-tag-count {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    transition: color 0.15s;
+  }
+  .genre-tag:hover .genre-tag-count { color: var(--accent); }
+
+  /* CONTENT */
+  .content { max-width: 860px; padding: 0 2.5rem 7rem; }
+  .section { padding-top: 3rem; }
+  .section-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-family: sans-serif;
+    margin-bottom: 1.2rem;
+  }
+
+  /* FEATURED */
+  .featured-list { display: flex; flex-direction: column; gap: 0; }
+  .featured-list .featured-card { border-top: 1px solid var(--border); }
+  .featured-list .featured-card:last-child { border-bottom: 1px solid var(--border); }
+
+  .featured-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 1.6rem 0.8rem;
+    margin: 0 -0.8rem;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .featured-card:hover { background: var(--surface); }
+  .featured-card:hover .featured-title { color: var(--accent); }
+
+  .featured-left { flex: 1; min-width: 0; }
+  .featured-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+  .featured-title { font-size: 1.1rem; line-height: 1.4; margin-bottom: 0.5rem; transition: color 0.15s; }
+  .featured-synopsis {
+    font-size: 0.83rem;
+    color: var(--text-sub);
+    line-height: 1.75;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .featured-right {
+    text-align: right;
+    flex-shrink: 0;
+    font-family: sans-serif;
+  }
+  .featured-chapters { font-size: 1.8rem; font-weight: bold; line-height: 1; display: block; }
+  .featured-chapters-label { font-size: 0.68rem; color: var(--text-dim); }
+
+  @media (max-width: 600px) {
+    .hero { flex-direction: column; align-items: flex-start; }
+  }
+</style>
