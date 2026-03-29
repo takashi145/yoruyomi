@@ -109,7 +109,7 @@ const featuredWorks = allChapters
     align-items: flex-end;
     justify-content: space-between;
     gap: 2rem;
-    padding: 5rem 2.5rem 4rem;
+    padding: clamp(2.5rem, 8vw, 5rem) clamp(1rem, 5vw, 2.5rem) clamp(2rem, 6vw, 4rem);
     border-bottom: 1px solid var(--border);
   }
   .hero-left { flex: 1; }
@@ -156,7 +156,7 @@ const featuredWorks = allChapters
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    padding: 1.5rem 2.5rem;
+    padding: 1.5rem clamp(1rem, 5vw, 2.5rem);
     border-bottom: 1px solid var(--border);
   }
   .genre-tag {
@@ -180,7 +180,7 @@ const featuredWorks = allChapters
   .genre-tag:hover .genre-tag-count { color: var(--accent); }
 
   /* CONTENT */
-  .content { max-width: 860px; padding: 0 2.5rem 7rem; }
+  .content { max-width: 860px; padding: 0 clamp(1rem, 5vw, 2.5rem) 7rem; }
   .section { padding-top: 3rem; }
   .section-label {
     font-size: 0.68rem;
@@ -230,7 +230,10 @@ const featuredWorks = allChapters
   .featured-chapters { font-size: 1.8rem; font-weight: bold; line-height: 1; display: block; }
   .featured-chapters-label { font-size: 0.68rem; color: var(--text-dim); }
 
-  @media (max-width: 600px) {
+  @media (max-width: 720px) {
     .hero { flex-direction: column; align-items: flex-start; }
+    .hero-right { flex-wrap: wrap; }
+    .hero-stat { padding: 0 1rem; }
+    .hero-stat:first-child { border-left: none; padding-left: 0; }
   }
 </style>
