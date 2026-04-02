@@ -70,7 +70,20 @@ const currentSlug = entry.id.replace(`${workSlug}/`, "").replace(/\.md$/, "");
 
       <hr />
 
-      <article class="prose">
+      <!-- TTS -->
+      <div class="tts-bar" id="tts-bar" style="display:none">
+        <span class="tts-heading">🔊 音声読み上げ</span>
+        <button id="tts-play" class="tts-play-btn" aria-label="読み上げ">
+          <span class="tts-icon" aria-hidden="true">▶</span>
+          <span class="tts-label">再生</span>
+        </button>
+        <button id="tts-stop" class="tts-stop-btn" aria-label="停止" disabled>
+          <span aria-hidden="true">⏹</span>
+        </button>
+        <span class="tts-status" id="tts-status">停止中</span>
+      </div>
+
+      <article class="prose" id="prose">
         <slot />
       </article>
 
@@ -97,6 +110,7 @@ const currentSlug = entry.id.replace(`${workSlug}/`, "").replace(/\.md$/, "");
 
     </main>
   </div>
+
 </Base>
 
 <style>
@@ -192,6 +206,48 @@ const currentSlug = entry.id.replace(`${workSlug}/`, "").replace(/\.md$/, "");
   }
   .chapter-title { font-size: 1.6rem; line-height: 1.5; }
 
+  /* ---- TTS ---- */
+  .tts-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1.5rem 0 0;
+    font-family: sans-serif;
+  }
+  .tts-play-btn,
+  .tts-stop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-sub);
+    font-family: sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .tts-play-btn:hover { border-color: var(--accent); color: var(--text); }
+  .tts-stop-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+  .tts-stop-btn:disabled { opacity: 0.3; cursor: default; }
+  .tts-play-btn.is-playing { border-color: var(--accent); color: var(--accent); background: var(--surface); }
+  .tts-heading {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    margin-right: 0.25rem;
+  }
+  .tts-icon { font-size: 0.68rem; }
+  .tts-status {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    transition: color 0.15s;
+  }
+  .tts-status.is-playing { color: var(--accent); }
+  .tts-status.is-paused  { color: var(--text-sub); }
+
   .prose { margin: 2.5rem 0; }
 
   .chapter-nav {
@@ -220,6 +276,7 @@ const currentSlug = entry.id.replace(`${workSlug}/`, "").replace(/\.md$/, "");
 </style>
 
 <script>
+  // progress bar
   const bar = document.getElementById("progress-bar");
   if (bar) {
     window.addEventListener("scroll", () => {
@@ -227,5 +284,89 @@ const currentSlug = entry.id.replace(`${workSlug}/`, "").replace(/\.md$/, "");
       const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
       bar.style.width = (pct * 100) + "%";
     });
+  }
+
+  // TTS
+  if ("speechSynthesis" in window) {
+    const ttsBar   = document.getElementById("tts-bar") as HTMLElement;
+    const playBtn  = document.getElementById("tts-play") as HTMLButtonElement;
+    const stopBtn  = document.getElementById("tts-stop") as HTMLButtonElement;
+    const status   = document.getElementById("tts-status") as HTMLElement;
+    const prose    = document.getElementById("prose");
+    const label    = playBtn.querySelector(".tts-label") as HTMLElement;
+    const icon     = playBtn.querySelector(".tts-icon") as HTMLElement;
+
+    ttsBar.style.display = "flex";
+
+    const text = prose?.innerText ?? "";
+    let paused = false;
+
+    function getJaVoice() {
+      const voices = speechSynthesis.getVoices();
+      return voices.find(v => v.lang === "ja-JP")
+          ?? voices.find(v => v.lang.startsWith("ja"))
+          ?? null;
+    }
+
+    function setPlaying(playing: boolean) {
+      if (playing) {
+        icon.textContent = "⏸";
+        label.textContent = "一時停止";
+        playBtn.classList.add("is-playing");
+        stopBtn.disabled = false;
+        status.textContent = "再生中";
+        status.className = "tts-status is-playing";
+      } else {
+        icon.textContent = "▶";
+        label.textContent = "再生";
+        playBtn.classList.remove("is-playing");
+        status.textContent = "一時停止中";
+        status.className = "tts-status is-paused";
+      }
+    }
+
+    function stop() {
+      speechSynthesis.cancel();
+      paused = false;
+      icon.textContent = "▶";
+      label.textContent = "再生";
+      playBtn.classList.remove("is-playing");
+      stopBtn.disabled = true;
+      status.textContent = "停止中";
+      status.className = "tts-status";
+    }
+
+    function speak() {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ja-JP";
+      utter.rate = 0.92;
+      const voice = getJaVoice();
+      if (voice) utter.voice = voice;
+      utter.onend = stop;
+      utter.onerror = stop;
+      speechSynthesis.speak(utter);
+      setPlaying(true);
+    }
+
+    playBtn.addEventListener("click", () => {
+      if (paused) {
+        speechSynthesis.resume();
+        paused = false;
+        setPlaying(true);
+      } else if (speechSynthesis.speaking) {
+        speechSynthesis.pause();
+        paused = true;
+        setPlaying(false);
+      } else {
+        // voices may not be loaded yet
+        if (speechSynthesis.getVoices().length === 0) {
+          speechSynthesis.onvoiceschanged = () => { speak(); };
+        } else {
+          speak();
+        }
+      }
+    });
+
+    stopBtn.addEventListener("click", stop);
   }
 </script>
