@@ -32,6 +32,17 @@ const allGenres = [...new Set(works.flatMap(({ meta }) => meta.data.genre ?? [])
 
     <h1 class="page-title">作品一覧</h1>
 
+    <!-- 検索 -->
+    <div class="search-area">
+      <input
+        id="search-input"
+        class="search-input"
+        type="search"
+        placeholder="タイトル・あらすじで検索"
+        autocomplete="off"
+      />
+    </div>
+
     <!-- フィルター -->
     <div class="filter-area">
       <div class="filter-group">
@@ -62,6 +73,8 @@ const allGenres = [...new Set(works.flatMap(({ meta }) => meta.data.genre ?? [])
         <li
           data-genres={(meta.data.genre ?? []).join(",")}
           data-status={meta.data.status}
+          data-title={meta.data.workTitle}
+          data-synopsis={meta.data.synopsis ?? ""}
         >
           <a href={`/novels/${meta.data.workSlug}`} class="work-row">
             <div class="work-info">
@@ -117,7 +130,24 @@ const allGenres = [...new Set(works.flatMap(({ meta }) => meta.data.genre ?? [])
   .breadcrumb a { color: var(--text-dim); transition: color 0.15s; }
   .breadcrumb a:hover { color: var(--text-sub); }
 
-  .page-title { font-size: 1.4rem; font-weight: normal; margin-bottom: 2rem; }
+  .page-title { font-size: 1.4rem; font-weight: normal; margin-bottom: 1.5rem; }
+
+  .search-area { margin-bottom: 1.2rem; }
+  .search-input {
+    width: 100%;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    font-family: sans-serif;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+  }
+  .search-input::placeholder { color: var(--text-dim); }
+  .search-input:focus { border-color: var(--accent); }
 
   .filter-area {
     display: flex;
@@ -201,22 +231,32 @@ const allGenres = [...new Set(works.flatMap(({ meta }) => meta.data.genre ?? [])
 <script>
   const items = document.querySelectorAll<HTMLLIElement>("#works-list li");
   const noResults = document.getElementById("no-results")!;
+  const searchInput = document.getElementById("search-input") as HTMLInputElement;
 
-  const active = { status: "all", genre: "all" };
+  const active = { status: "all", genre: "all", query: "" };
 
   function applyFilters() {
+    const q = active.query.trim().toLowerCase();
     let visible = 0;
     items.forEach((item) => {
-      const genres = item.dataset.genres?.split(",").filter(Boolean) ?? [];
-      const status = item.dataset.status ?? "";
+      const genres   = item.dataset.genres?.split(",").filter(Boolean) ?? [];
+      const status   = item.dataset.status ?? "";
+      const title    = (item.dataset.title ?? "").toLowerCase();
+      const synopsis = (item.dataset.synopsis ?? "").toLowerCase();
       const matchStatus = active.status === "all" || status === active.status;
       const matchGenre  = active.genre  === "all" || genres.includes(active.genre);
-      const show = matchStatus && matchGenre;
+      const matchQuery  = q === "" || title.includes(q) || synopsis.includes(q);
+      const show = matchStatus && matchGenre && matchQuery;
       item.classList.toggle("hidden", !show);
       if (show) visible++;
     });
     noResults.style.display = visible === 0 ? "block" : "none";
   }
+
+  searchInput.addEventListener("input", () => {
+    active.query = searchInput.value;
+    applyFilters();
+  });
 
   function activateButton(type: "status" | "genre", value: string) {
     document.querySelectorAll<HTMLButtonElement>(`.filter-btn[data-type="${type}"]`)
